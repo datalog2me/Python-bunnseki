@@ -1,4 +1,6 @@
-import pandas as pd
+特定銘柄の株価の予測・AIRMAモデル。
+
+mport pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import datetime
