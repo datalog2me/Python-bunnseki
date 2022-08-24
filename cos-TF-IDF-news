@@ -1,0 +1,41 @@
+TF-IDFとコサイン類似度により文書の類似度を判定してみた。
+
+from janome.tokenizer import Tokenizer
+import numpy as np
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# テキストファイルのリスト 
+filenames=['TF-IDF/text1.txt','TF-IDF/text2.txt','TF-IDF/text3.txt','TF-IDF/text4.txt']
+wakati_list = []
+
+for filename in filenames:
+    # テキストファイルを読み出しtextに代入 
+    with open(filename,mode='r',encoding = 'utf-8-sig') as f:
+        text = f.read()
+    
+    # 分かち書き
+    wakati = ''
+    t = Tokenizer() 
+    for token in t.tokenize(text):  # 形態素解析
+        hinshi = (token.part_of_speech).split(',')[0]  # 品詞情報を取得
+        hinshi_2 = (token.part_of_speech).split(',')[1]  # 品詞情報の2項目目を取得
+        if hinshi in ['名詞']:  # 品詞が名詞、動詞、形容詞の場合のみ以下実行
+            if not hinshi_2 in ['空白','*']:  # 品詞情報の2項目目が空白か*の場合は以下実行しない
+                word = str(token).split()[0]  # 単語を取得
+                if not ',*,' in word:  # 単語に*が含まれない場合は以下実行
+                    wakati = wakati + word +' ' # オブジェクトwakatiに単語とスペースを追加 
+    wakati_list.append(wakati) # 分かち書き結果をリストに追加
+wakati_list_np = np.array(wakati_list) # リストをndarrayに変換
+
+# vectorizerの生成。token_pattern=u'(?u)\\b\\w+\\b'で1文字の語を含む設定
+vectorizer = CountVectorizer(token_pattern=u'(?u)\\b\\w+\\b')
+# transformerの生成。TF-IDFを使用
+transformer = TfidfTransformer()
+
+tf = vectorizer.fit_transform(wakati_list_np) # ベクトル化
+tfidf = transformer.fit_transform(tf) # TF-IDF
+tfidf_array = tfidf.toarray()
+cs = cosine_similarity(tfidf_array,tfidf_array)  # cos類似度計算
+print(cs)
