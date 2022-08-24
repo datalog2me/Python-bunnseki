@@ -1,0 +1,49 @@
+Yahoo!ニュース、国際 のページからスクレイピングしして頻出単語を抽出、グラフ化してみた。
+※アクセスランキング1～20位の国際関連ニュースの見出しをスクレイピング。
+
+from bs4 import BeautifulSoup as bs 
+import requests 
+from janome.tokenizer import Tokenizer
+import collections  
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Responseオブジェクトの取得
+rs = requests.get('https://news.yahoo.co.jp/ranking/access?ty=t&c=c_int')
+# BeautifulSoupオブジェクトの取得
+soup = bs(rs.text.encode(rs.encoding), 'html.parser') 
+
+# class='titl'のみ取得
+selected_class = soup.select('.titl')
+
+# タグ以外の文章を取得しtitlesに集約
+a = ''
+for i in selected_class:
+    b = (i.string)
+    a += b
+
+list_txt=[] 
+t = Tokenizer()
+
+# 形態素解析を行い、名詞のみを取得しlist_txtに加える
+for token in t.tokenize(a):
+    a = str(token).split()[1]
+    c = str(a).split(',')[0]   
+    if c=='名詞':   
+        d = str(token).split()[0]  
+        list_txt.append(d)  
+
+# list_txtのカウント結果を登場回数の多い順に10個取得        
+txt_count = collections.Counter(list_txt)
+list_best=txt_count.most_common(10)  
+
+# X軸、Y軸の値設定
+x = np.array(list_best)[:,0]
+y = np.array(list_best)[:,1]
+y_int = np.array(y,dtype = np.int8)
+
+# 棒グラフの表示
+plt.bar(x,y_int)
+plt.show
+
+
