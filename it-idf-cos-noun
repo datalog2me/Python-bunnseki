@@ -1,0 +1,89 @@
+名詞の出現頻度からTF-IDF/COS類似度を算出してみた。※２記事を比較。
+
+#TfidfVectorizerを用いて文書における単語のスコアを数値化。
+
+def tfidf(word_list):
+    docs = np.array(word_list)#Numpyの配列に変換する
+    #単語を配列ベクトル化して、TF-IDFを計算する
+    vecs = TfidfVectorizer(
+                token_pattern=u'(?u)bw+b'#文字列長が 1 の単語を処理対象に含める。
+                ).fit_transform(docs)
+    vecs = vecs.toarray()
+    return vecs
+
+
+#token_pattern=u'(?u)bw+b’では、1文字の単語も単語として処理するように設定
+
+
+#以下、実装の流れ。
+import requests
+from bs4 import BeautifulSoup
+import sys
+import MeCab
+from time import sleep
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+##関数定義
+# 1：URLからテキスト情報をスクレイピング
+def geturl(urls):
+    all_text=[]
+    for url in urls:
+        r=requests.get(url)
+        c=r.content
+        soup=BeautifulSoup(c,"html.parser")
+        article1_content=soup.find_all("p")
+        temp=[]
+        for con in article1_content:
+            out=con.text
+            temp.append(out)
+        text=''.join(temp)
+        all_text.append(text)
+        sleep(1)
+    return all_text
+
+
+# 2：それらをMeCabで形態素解析。名詞だけ抽出。
+def mplg(article):
+    word_list = ""
+    m=MeCab.Tagger()
+    m1=m.parse (text)
+    for row in m1.split("\n"):
+        word =row.split("\t")[0]#タブ区切りになっている１つ目を取り出す。ここには形態素が格納されている
+        if word == "EOS":
+            break
+        else:
+            pos = row.split("\t")[1]#タブ区切りになっている2つ目を取り出す。ここには品詞が格納されている
+            slice = pos[:2]
+            if slice == "名詞":
+                word_list = word_list +" "+ word
+    return word_list
+
+
+# 3：名詞の出現頻度からTF-IDF/COS類似度を算出。テキスト情報のマッチ度を測る
+def tfidf(word_list):
+    docs = np.array(word_list)#Numpyの配列に変換する
+    #単語を配列ベクトル化して、TF-IDFを計算する
+    vecs = TfidfVectorizer(
+                token_pattern=u'(?u)\\b\\w+\\b'#文字列長が 1 の単語を処理対象に含めることを意味します。
+                ).fit_transform(docs)
+    vecs = vecs.toarray()
+    return vecs
+
+＃COS類似度において、2つのベクトルの内積をそれぞれのL2ノルムで割る計算をする
+def cossim(v1,v2):
+    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+##実装
+word_list=[]
+texts=geturl(["https://forbesjapan.com/articles/detail/31176","https://forbesjapan.com/articles/detail/22747"])
+for text in texts:
+    word_list.append(mplg(text))
+    
+vecs=tfidf(word_list)
+print(cossim(vecs[1],vecs[0]))
+
+
+
+
+
